@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auth Test Client</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #response {
+        background-color: #f5f5f5;
+        padding: 15px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        overflow-x: auto;
+      }
+      .auth-status {
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+      .logged-in {
+        background-color: #dff0d8;
+        border: 1px solid #d6e9c6;
+        color: #3c763d;
+      }
+      .logged-out {
+        background-color: #f2dede;
+        border: 1px solid #ebccd1;
+        color: #a94442;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Mental Health Backend Authentication Test</h1>
+
+      <div id="authStatus" class="auth-status logged-out">Not logged in</div>
+
+      <div class="card">
+        <h2>Register</h2>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="registerUsername">Username</label>
+            <input type="text" id="registerUsername" required />
+          </div>
+          <div class="form-group">
+            <label for="registerEmail">Email</label>
+            <input type="email" id="registerEmail" required />
+          </div>
+          <div class="form-group">
+            <label for="registerPassword">Password</label>
+            <input type="password" id="registerPassword" required />
+          </div>
+          <button type="submit">Register</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required />
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" required />
+          </div>
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Test Protected Endpoint</h2>
+        <form id="testForm">
+          <div class="form-group">
+            <label for="endpoint">Endpoint URL</label>
+            <input type="text" id="endpoint" value="/api/protected" required />
+          </div>
+          <button type="submit">Test Endpoint</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Response</h2>
+        <pre id="response">No response yet</pre>
+      </div>
+    </div>
+
+    <script>
+      // API base URL
+      const API_URL = 'http://localhost:5000';
+
+      // Get DOM elements
+      const registerForm = document.getElementById('registerForm');
+      const loginForm = document.getElementById('loginForm');
+      const testForm = document.getElementById('testForm');
+      const responseEl = document.getElementById('response');
+      const authStatusEl = document.getElementById('authStatus');
+
+      // Check if token exists on page load
+      window.addEventListener('DOMContentLoaded', () => {
+        updateAuthStatus();
+      });
+
+      // Update the auth status display
+      function updateAuthStatus() {
+        const token = localStorage.getItem('token');
+        if (token) {
+          authStatusEl.className = 'auth-status logged-in';
+          authStatusEl.textContent = 'Logged in with token';
+        } else {
+          authStatusEl.className = 'auth-status logged-out';
+          authStatusEl.textContent = 'Not logged in';
+        }
+      }
+
+      // Display response or error
+      function displayResponse(data, isError = false) {
+        responseEl.style.color = isError ? 'red' : 'black';
+        responseEl.textContent =
+          typeof data === 'object'
+            ? JSON.stringify(data, null, 2)
+            : data.toString();
+      }
+
+      // Handle registration
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('registerUsername').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+
+        try {
+          const response = await fetch(`${API_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password }),
+          });
+
+          const data = await response.json();
+          displayResponse(data);
+
+          if (response.ok && data.token) {
+            localStorage.setItem('token', data.token);
+            updateAuthStatus();
+          }
+        } catch (error) {
+          displayResponse(error.message, true);
+        }
+      });
+
+      // Handle login
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        try {
+          const response = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+          displayResponse(data);
+
+          if (response.ok && data.token) {
+            localStorage.setItem('token', data.token);
+            updateAuthStatus();
+          }
+        } catch (error) {
+          displayResponse(error.message, true);
+        }
+      });
+
+      // Test protected endpoint
+      testForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const endpoint = document.getElementById('endpoint').value;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+          displayResponse('No token found. Please login first.', true);
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const data = await response.json();
+          displayResponse(data);
+        } catch (error) {
+          displayResponse(error.message, true);
+        }
+      });
+    </script>
+  </body>
+</html>
