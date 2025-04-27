@@ -7,7 +7,6 @@ import signal
 from resources import resources_bp
 from mood import mood_bp
 from profile import profile_bp
-from emergency import emergency_bp  # Import the emergency blueprint
 
 
 # Load environment variables from .env file
@@ -56,7 +55,11 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 def create_app():
-    # Create the Flask app FIRST
+    
+    
+    app.register_blueprint(profile_bp, url_prefix='/api')
+    app.register_blueprint(mood_bp, url_prefix='/api')
+    app.register_blueprint(resources_bp, url_prefix='/api')
     app = Flask(__name__)
     app.config.from_object(Config)
 
@@ -82,16 +85,9 @@ def create_app():
     # Import blueprints after initializing extensions to avoid circular imports
     from auth import auth, chat_bp
 
-    # Register all blueprints AFTER the app is created
+    # Register blueprints - IMPORTANT: register chat_bp at /api, not /api/chat
     app.register_blueprint(auth, url_prefix='/api/auth')
-    app.register_blueprint(chat_bp, url_prefix='/api')  # Keep the chat blueprint from auth.py
-    app.register_blueprint(profile_bp, url_prefix='/api')
-    app.register_blueprint(mood_bp, url_prefix='/api')
-    app.register_blueprint(resources_bp, url_prefix='/api')
-    app.register_blueprint(emergency_bp, url_prefix='/api')  # Register the emergency blueprint
-    
-    # Do NOT register the chat blueprint from routes.py
-    # Or you can use a different endpoint name if you need both
+    app.register_blueprint(chat_bp, url_prefix='/api')  # This is key - no /chat in the prefix
 
     # Debug endpoints
     @app.route('/debug/routes', methods=['GET'])

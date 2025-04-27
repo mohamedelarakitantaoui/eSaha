@@ -4,7 +4,6 @@ import { SupportQuestionCard } from './SupportQuestionCard';
 import { Button } from './Button';
 import useAuth from '../contexts/useAuth';
 import API from '../services/api';
-import ChatTitleEditor from './ChatTitleEditor';
 
 interface Message {
   id: string;
@@ -22,7 +21,6 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   initialMessages = [],
   sessionId,
-  initialTitle,
 }) => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
@@ -30,9 +28,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [showWelcome, setShowWelcome] = useState(messages.length === 0);
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [sessionTitle, setSessionTitle] = useState<string>(
-    initialTitle || 'New Chat'
-  );
 
   // Store the session ID (for conversation continuity)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(
@@ -158,23 +153,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setShowWelcome(true);
     setIsError(false);
     setErrorMessage('');
-    setSessionTitle('New Chat'); // Reset the title
     console.log('Started new session with ID:', newSessionId);
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Session Title Bar */}
+      {/* Session Status Bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-2 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <MessageSquare size={18} className="text-indigo-600" />
-          {currentSessionId && (
-            <ChatTitleEditor
-              sessionId={currentSessionId}
-              initialTitle={sessionTitle}
-              onTitleChange={setSessionTitle}
-            />
-          )}
+          <span className="text-sm font-medium text-gray-700">
+            {messages.length > 0 ? 'Active Session' : 'New Session'}
+          </span>
         </div>
         <Button
           variant="secondary"

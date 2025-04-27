@@ -7,7 +7,6 @@ import signal
 from resources import resources_bp
 from mood import mood_bp
 from profile import profile_bp
-from emergency import emergency_bp  # Import the emergency blueprint
 
 
 # Load environment variables from .env file
@@ -84,14 +83,10 @@ def create_app():
 
     # Register all blueprints AFTER the app is created
     app.register_blueprint(auth, url_prefix='/api/auth')
-    app.register_blueprint(chat_bp, url_prefix='/api')  # Keep the chat blueprint from auth.py
+    app.register_blueprint(chat_bp, url_prefix='/api')  # This is key - no /chat in the prefix
     app.register_blueprint(profile_bp, url_prefix='/api')
     app.register_blueprint(mood_bp, url_prefix='/api')
     app.register_blueprint(resources_bp, url_prefix='/api')
-    app.register_blueprint(emergency_bp, url_prefix='/api')  # Register the emergency blueprint
-    
-    # Do NOT register the chat blueprint from routes.py
-    # Or you can use a different endpoint name if you need both
 
     # Debug endpoints
     @app.route('/debug/routes', methods=['GET'])

@@ -79,22 +79,7 @@ const ChatSessionsPage: React.FC = () => {
         return;
       }
 
-      // Since deleteSession doesn't exist in the API, we can simulate deletion
-      // by removing it from local state and optionally implement an API call
-      // that might be available for deletion.
-
-      // Option 1: If there's a specific deleteSession API endpoint:
-      // await API.chat.deleteSession(token, sessionId);
-
-      // Option 2: If you can use a general delete API endpoint:
-      await fetch(`/api/chat/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // Update the local state to remove the deleted session
+      await API.chat.deleteSession(token, sessionId);
       setSessions(
         sessions.filter((session) => session.session_id !== sessionId)
       );

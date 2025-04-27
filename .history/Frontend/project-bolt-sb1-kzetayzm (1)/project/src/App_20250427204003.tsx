@@ -9,17 +9,17 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatPage from './pages/ChatPage';
-import ChatSessionsPage from './components/ChatSessionsPage'; // Fixed: actually in components folder
+import ChatSessionsPage from './components/ChatSessionsPage';
 import { DashboardLayout } from './components/DashboardLayout';
 
 import JournalPage from './pages/JournalPage';
-import MoodTrackerPage from './components/MoodTrackerPage'; // Fixed: actually in components folder
+import MoodTrackerPage from './components/MoodTrackerPage';
 import ResourcesPage from './pages/ResourcesPage';
 import SettingsPage from './pages/SettingsPage';
 import MainDashboard from './components/MainDashboard';
-import EmergencyContacts from './components/EmergencyContacts'; // Fixed: correct component name
+import EmergencyContactsManager from './components/EmergencyContactsManager';
 import SchedulingCalendar from './components/SchedulingCalendar';
-// Note: MoodTrackerDashboard needs to be created or you need to use MoodTrackerPage instead
+import MoodTrackerDashboard from './components/MoodTrackerDashboard';
 
 // Placeholder components for routes not yet implemented
 const CopingToolsPage = () => (
@@ -44,17 +44,6 @@ const HelpPage = () => (
       </div>
     </div>
   </DashboardLayout>
-);
-
-// Temporary placeholder component for MoodTrackerDashboard if it doesn't exist yet
-const MoodTrackerDashboard = () => (
-  <div className="text-center">
-    <h2 className="text-2xl font-bold text-gray-800 mb-2">Mood Dashboard</h2>
-    <p className="text-gray-600">The enhanced mood tracker is coming soon!</p>
-    <p className="text-gray-600 mt-4">
-      Using temporary placeholder until component is implemented.
-    </p>
-  </div>
 );
 
 const App: React.FC = () => {
@@ -117,7 +106,7 @@ const App: React.FC = () => {
             element={
               <DashboardLayout>
                 <div className="p-6">
-                  <EmergencyContacts />
+                  <EmergencyContactsManager />
                 </div>
               </DashboardLayout>
             }

@@ -11,8 +11,6 @@ from supabase_client import supabase, verify_supabase_token
 from functools import wraps
 import uuid
 import traceback
-import json
-import re
 
 # Set the OpenAI API key
 openai.api_key = Config.OPENAI_API_KEY
@@ -20,62 +18,6 @@ openai.api_key = Config.OPENAI_API_KEY
 # Create blueprints
 auth = Blueprint('auth', __name__)
 chat_bp = Blueprint('chat', __name__)
-
-# Define sentiment analysis function
-def analyze_sentiment(text):
-    """
-    Analyze the sentiment of a message using OpenAI's API
-    Returns a sentiment score and mood category
-    """
-    try:
-        # Use the OpenAI API to analyze sentiment
-        messages = [
-            {"role": "system", "content": "You are a mental health professional analyzing the sentiment in a message. Rate the sentiment on a scale from -5 (extremely negative) to 5 (extremely positive). Also categorize the mood as one of: very_happy, happy, neutral, sad, very_sad, anxious, angry. Return your answer as a JSON object with fields 'score' and 'mood'."},
-            {"role": "user", "content": text}
-        ]
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            max_tokens=150,
-            temperature=0.3
-        )
-        
-        # Extract the JSON response
-        result_text = response.choices[0].message.content.strip()
-        
-        # Try to parse the JSON
-        try:
-            # Sometimes the model might return text before/after the JSON
-            # This regex tries to extract the JSON object from the response
-            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
-            if json_match:
-                result_json = json.loads(json_match.group(0))
-            else:
-                # If no JSON object is found, fallback to default values
-                result_json = {"score": 0, "mood": "neutral"}
-                
-            # Validate the sentiment score is between -5 and 5
-            score = float(result_json.get("score", 0))
-            score = max(-5, min(5, score))  # Clamp to range [-5, 5]
-            
-            # Validate the mood is one of the expected categories
-            valid_moods = ["very_happy", "happy", "neutral", "sad", "very_sad", "anxious", "angry"]
-            mood = result_json.get("mood", "neutral")
-            if mood not in valid_moods:
-                mood = "neutral"
-                
-            return {
-                "score": score,
-                "mood": mood
-            }
-        except Exception as json_error:
-            print(f"DEBUG: Error parsing sentiment JSON: {str(json_error)}")
-            return {"score": 0, "mood": "neutral"}  # Default values
-            
-    except Exception as e:
-        print(f"DEBUG: Error in sentiment analysis: {str(e)}")
-        return {"score": 0, "mood": "neutral"}  # Default values
 
 # Hybrid function to check both Supabase and JWT tokens
 def get_user_from_token(token):
@@ -172,8 +114,8 @@ def token_debug():
 
 @chat_bp.route('/chat', methods=['POST'])
 @auth_required
-def process_chat():
-    """Handle chat messages from users with sentiment analysis"""
+def chat():
+    """Handle chat messages from users"""
     print("DEBUG: POST /chat endpoint called")
     
     # User is available from the auth_required decorator
@@ -223,10 +165,6 @@ def process_chat():
             except Exception as e:
                 print(f"DEBUG: Error auto-creating session: {str(e)}")
                 # Continue anyway - the message will still be stored
-        
-        # Perform sentiment analysis
-        sentiment_result = analyze_sentiment(user_message)
-        print(f"DEBUG: Sentiment analysis result: {sentiment_result}")
         
         # Fetch previous messages for this session if provided
         conversation_history = []
@@ -280,15 +218,14 @@ def process_chat():
             print(f"DEBUG: OpenAI API error: {str(openai_err)}")
             return jsonify({"error": f"Error from AI service: {str(openai_err)}"}), 503
 
-        # Store chat in MongoDB, now including session_id and sentiment
+        # Store chat in MongoDB, now including session_id
         chat_document = {
             "user_id": str(user_id),  # Convert to string for consistency
             "subject": subject_val,
             "message": user_message,
             "response": gpt_response,
             "timestamp": datetime.utcnow(),
-            "session_id": session_id,  # Always include session_id now
-            "sentiment": sentiment_result  # Add sentiment analysis result
+            "session_id": session_id  # Always include session_id now
         }
 
         print(f"DEBUG: Storing in MongoDB: {chat_document}")
@@ -318,27 +255,6 @@ def process_chat():
                 except Exception as client_err:
                     print(f"DEBUG: Direct client MongoDB error: {str(client_err)}")
                     # Continue anyway so we return the response to the user
-        
-        # Update the mood table for tracking
-        try:
-            # Store mood entry in separate collection for tracking
-            mood_entry = {
-                "user_id": str(user_id),
-                "date": datetime.utcnow().strftime('%Y-%m-%d'),
-                "mood": sentiment_result["mood"],
-                "mood_score": sentiment_result["score"],
-                "factors": [],
-                "source": "chat_message",
-                "message_id": str(chat_document["_id"]) if "_id" in chat_document else None,
-                "session_id": session_id,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
-            mongo.db.mood_entries.insert_one(mood_entry)
-            print(f"DEBUG: Stored mood entry: {mood_entry['mood']}")
-        except Exception as mood_err:
-            print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
-            # Continue anyway, non-critical
         
         # Only store in Supabase if using Supabase auth
         if user.get('auth_type') != 'jwt':
@@ -618,86 +534,6 @@ def get_session_history(session_id):
         traceback.print_exc()
         return jsonify({"error": "Failed to retrieve session history", "details": str(e)}), 500
 
-@chat_bp.route('/chat/sessions/<session_id>/title', methods=['PUT'])
-@auth_required
-def update_session_title(session_id):
-    """Update the title of a chat session"""
-    # User is available from the auth_required decorator
-    user = request.user
-    user_id = user.get('id')
-    
-    # Ensure MongoDB connection
-    if not ensure_mongo_connection():
-        return jsonify({"error": "Database connection unavailable"}), 500
-    
-    # Get the new title from the request
-    data = request.get_json() or {}
-    new_title = data.get('title')
-    
-    if not new_title or not isinstance(new_title, str):
-        return jsonify({"error": "Valid title is required"}), 400
-    
-    try:
-        # Convert user_id to string for MongoDB query consistency
-        user_id_str = str(user_id)
-        
-        # Update the session title
-        result = mongo.db.chat_sessions.update_one(
-            {"user_id": user_id_str, "session_id": session_id},
-            {"$set": {"title": new_title, "updated_at": datetime.utcnow()}}
-        )
-        
-        if result.matched_count == 0:
-            return jsonify({"error": "Session not found or not authorized"}), 404
-        
-        return jsonify({
-            "success": True,
-            "session_id": session_id,
-            "title": new_title
-        }), 200
-    except Exception as e:
-        print(f"DEBUG: Error updating session title: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": "Failed to update session title", "details": str(e)}), 500
-
-@chat_bp.route('/chat/sessions/<session_id>', methods=['GET'])
-@auth_required
-def get_session_details(session_id):
-    """Get details for a specific chat session"""
-    # User is available from the auth_required decorator
-    user = request.user
-    user_id = user.get('id')
-    
-    # Ensure MongoDB connection
-    if not ensure_mongo_connection():
-        return jsonify({"error": "Database connection unavailable"}), 500
-    
-    try:
-        # Convert user_id to string for MongoDB query consistency
-        user_id_str = str(user_id)
-        
-        # Get the session from MongoDB
-        session = mongo.db.chat_sessions.find_one({
-            "user_id": user_id_str,
-            "session_id": session_id
-        })
-        
-        if not session:
-            return jsonify({"error": "Session not found or not authorized"}), 404
-        
-        # Format the response
-        session['_id'] = str(session['_id'])
-        if 'created_at' in session and isinstance(session['created_at'], datetime):
-            session['created_at'] = session['created_at'].isoformat()
-        if 'updated_at' in session and isinstance(session['updated_at'], datetime):
-            session['updated_at'] = session['updated_at'].isoformat()
-        
-        return jsonify(session), 200
-    except Exception as e:
-        print(f"DEBUG: Error retrieving session details: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": "Failed to retrieve session details", "details": str(e)}), 500
-
 # We'll keep these routes for backward compatibility, but they won't be the primary auth mechanism
 @auth.route('/register', methods=['POST'])
 def register():
@@ -739,3 +575,238 @@ def login():
         return jsonify({"access_token": access_token}), 200
         
     return jsonify({"msg": "Invalid email or password"}), 401
+
+# Add this endpoint to your auth.py file in the chat_bp blueprint
+
+@chat_bp.route('/chat/sessions/<session_id>/title', methods=['PUT'])
+@auth_required
+def update_session_title(session_id):
+    """Update the title of a chat session"""
+    # User is available from the auth_required decorator
+    user = request.user
+    user_id = user.get('id')
+    
+    # Ensure MongoDB connection
+    if not ensure_mongo_connection():
+        return jsonify({"error": "Database connection unavailable"}), 500
+    
+    # Get the new title from the request
+    data = request.get_json() or {}
+    new_title = data.get('title')
+    
+    if not new_title or not isinstance(new_title, str):
+        return jsonify({"error": "Valid title is required"}), 400
+    
+    try:
+        # Convert user_id to string for MongoDB query consistency
+        user_id_str = str(user_id)
+        
+        # Update the session title
+        result = mongo.db.chat_sessions.update_one(
+            {"user_id": user_id_str, "session_id": session_id},
+            {"$set": {"title": new_title, "updated_at": datetime.utcnow()}}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({"error": "Session not found or not authorized"}), 404
+        
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "title": new_title
+        }), 200
+    except Exception as e:
+        print(f"DEBUG: Error updating session title: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": "Failed to update session title", "details": str(e)}), 500
+    
+    # Add this endpoint to your auth.py file in the chat_bp blueprint
+
+@chat_bp.route('/chat/sessions/<session_id>', methods=['GET'])
+@auth_required
+def get_session_details(session_id):
+    """Get details for a specific chat session"""
+    # User is available from the auth_required decorator
+    user = request.user
+    user_id = user.get('id')
+    
+    # Ensure MongoDB connection
+    if not ensure_mongo_connection():
+        return jsonify({"error": "Database connection unavailable"}), 500
+    
+    try:
+        # Convert user_id to string for MongoDB query consistency
+        user_id_str = str(user_id)
+        
+        # Get the session from MongoDB
+        session = mongo.db.chat_sessions.find_one({
+            "user_id": user_id_str,
+            "session_id": session_id
+        })
+        
+        if not session:
+            return jsonify({"error": "Session not found or not authorized"}), 404
+        
+        # Format the response
+        session['_id'] = str(session['_id'])
+        if 'created_at' in session and isinstance(session['created_at'], datetime):
+            session['created_at'] = session['created_at'].isoformat()
+        if 'updated_at' in session and isinstance(session['updated_at'], datetime):
+            session['updated_at'] = session['updated_at'].isoformat()
+        
+        return jsonify(session), 200
+    except Exception as e:
+        print(f"DEBUG: Error retrieving session details: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": "Failed to retrieve session details", "details": str(e)}), 500
+    
+    # Add this function to your auth.py file
+
+def analyze_sentiment(text):
+    """
+    Analyze the sentiment of a message using OpenAI's API
+    Returns a sentiment score and mood category
+    """
+    try:
+        # Use the OpenAI API to analyze sentiment
+        messages = [
+            {"role": "system", "content": "You are a mental health professional analyzing the sentiment in a message. Rate the sentiment on a scale from -5 (extremely negative) to 5 (extremely positive). Also categorize the mood as one of: very_happy, happy, neutral, sad, very_sad, anxious, angry. Return your answer as a JSON object with fields 'score' and 'mood'."},
+            {"role": "user", "content": text}
+        ]
+        
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            max_tokens=150,
+            temperature=0.3
+        )
+        
+        # Extract the JSON response
+        result_text = response.choices[0].message.content.strip()
+        
+        # Try to parse the JSON
+        try:
+            import json
+            import re
+            
+            # Sometimes the model might return text before/after the JSON
+            # This regex tries to extract the JSON object from the response
+            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+            if json_match:
+                result_json = json.loads(json_match.group(0))
+            else:
+                # If no JSON object is found, fallback to default values
+                result_json = {"score": 0, "mood": "neutral"}
+                
+            # Validate the sentiment score is between -5 and 5
+            score = float(result_json.get("score", 0))
+            score = max(-5, min(5, score))  # Clamp to range [-5, 5]
+            
+            # Validate the mood is one of the expected categories
+            valid_moods = ["very_happy", "happy", "neutral", "sad", "very_sad", "anxious", "angry"]
+            mood = result_json.get("mood", "neutral")
+            if mood not in valid_moods:
+                mood = "neutral"
+                
+            return {
+                "score": score,
+                "mood": mood
+            }
+        except Exception as json_error:
+            print(f"DEBUG: Error parsing sentiment JSON: {str(json_error)}")
+            return {"score": 0, "mood": "neutral"}  # Default values
+            
+    except Exception as e:
+        print(f"DEBUG: Error in sentiment analysis: {str(e)}")
+        return {"score": 0, "mood": "neutral"}  # Default values
+    
+    # Update the chat endpoint in auth.py to include sentiment analysis
+
+@chat_bp.route('/chat', methods=['POST'])
+@auth_required
+def chat():
+    """Handle chat messages from users with sentiment analysis"""
+    print("DEBUG: POST /chat endpoint called")
+    
+    # User is available from the auth_required decorator
+    user = request.user
+    user_id = user.get('id')
+    
+    # Ensure MongoDB connection
+    if not ensure_mongo_connection():
+        return jsonify({"error": "Database connection unavailable"}), 500
+    
+    # Parse request data
+    data = request.get_json() or {}
+    print(f"DEBUG: Received data => {data}")
+
+    subject_val = data.get("subject", "General")
+    user_message = data.get("message")
+    # Get session ID if provided (for conversation continuity)
+    session_id = data.get("session_id")
+
+    # Validate input
+    if not isinstance(subject_val, str):
+        return jsonify({"error": "subject must be a string"}), 422
+    if not isinstance(user_message, str):
+        return jsonify({"error": "message must be a string"}), 422
+    if not user_message.strip():
+        return jsonify({"error": "message cannot be empty"}), 422
+
+    try:
+        # Create a session if one wasn't provided
+        # ... existing session creation code ...
+        
+        # Perform sentiment analysis
+        sentiment_result = analyze_sentiment(user_message)
+        print(f"DEBUG: Sentiment analysis result: {sentiment_result}")
+        
+        # Fetch previous messages for this session if provided
+        # ... existing message fetching code ...
+        
+        # Build the messages array for OpenAI
+        # ... existing OpenAI API call ...
+        
+        # Store chat in MongoDB, now including session_id and sentiment
+        chat_document = {
+            "user_id": str(user_id),  # Convert to string for consistency
+            "subject": subject_val,
+            "message": user_message,
+            "response": gpt_response,
+            "timestamp": datetime.utcnow(),
+            "session_id": session_id,  # Always include session_id now
+            "sentiment": sentiment_result  # Add sentiment analysis result
+        }
+
+        print(f"DEBUG: Storing in MongoDB: {chat_document}")
+        
+        # Insert the chat message
+        # ... existing code to store in MongoDB ...
+        
+        # Update the mood table for tracking
+        try:
+            # Store mood entry in separate collection for tracking
+            mood_entry = {
+                "user_id": str(user_id),
+                "date": datetime.utcnow(),
+                "mood": sentiment_result["mood"],
+                "score": sentiment_result["score"],
+                "source": "chat_message",
+                "message_id": str(chat_document["_id"]) if "_id" in chat_document else None,
+                "session_id": session_id
+            }
+            mongo.db.mood_entries.insert_one(mood_entry)
+            print(f"DEBUG: Stored mood entry: {mood_entry['mood']}")
+        except Exception as mood_err:
+            print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
+            # Continue anyway, non-critical
+        
+        # Format the MongoDB document timestamp for JSON response
+        if "timestamp" in chat_document and isinstance(chat_document["timestamp"], datetime):
+            chat_document["timestamp"] = chat_document["timestamp"].isoformat()
+            
+        return jsonify(chat_document), 200
+    except Exception as e:
+        print(f"DEBUG: Unexpected error in chat endpoint: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500

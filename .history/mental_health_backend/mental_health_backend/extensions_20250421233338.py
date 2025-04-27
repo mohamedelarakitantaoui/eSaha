@@ -41,24 +41,6 @@ def init_mongo_client(app):
             return False
     return True
 
-# Add the missing function
-def ensure_mongo_connection():
-    """
-    Ensures that the MongoDB connection is active and available.
-    Returns True if the connection is available, False otherwise.
-    """
-    global client
-    if client is None:
-        return False
-    
-    try:
-        # Test the connection by running a simple command
-        client.admin.command('ping')
-        return True
-    except Exception as e:
-        print(f"DEBUG: MongoDB connection error: {str(e)}")
-        return False
-
 # Clean up MongoDB connection specifically
 def cleanup_mongo_connection():
     """Cleanup MongoDB connection during application shutdown"""
