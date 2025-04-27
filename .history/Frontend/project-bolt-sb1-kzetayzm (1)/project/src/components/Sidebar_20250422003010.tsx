@@ -1,11 +1,11 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Logo } from './Logo';
 import {
   MessageSquare,
   Book,
   BarChart2,
-  Wrench,
+  Wrench, // Use Wrench instead of Tool as Tool isn't exported
   HelpCircle,
   Settings,
   User,
@@ -19,13 +19,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ userName = 'Guest' }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
-
-  // Handle creating a new session
-  const handleNewSession = () => {
-    navigate('/chat/new');
-  };
 
   const navItems = [
     { name: 'Chat Sessions', icon: <MessageSquare size={20} />, path: '/chat' },
@@ -45,13 +39,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ userName = 'Guest' }) => {
 
       {/* New Session Button */}
       <div className="px-4 mb-6">
-        <button
-          onClick={handleNewSession}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
+        <Link
+          to="/chat/new"
+          className="flex items-center justify-center gap-2 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <Plus size={18} />
           <span>New Session</span>
-        </button>
+        </Link>
       </div>
 
       {/* Navigation Links */}

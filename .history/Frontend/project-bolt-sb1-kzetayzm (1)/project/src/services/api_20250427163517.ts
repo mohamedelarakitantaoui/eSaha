@@ -20,14 +20,18 @@ interface ChatMessage {
 }
 
 interface ChatSession {
-  _id: string;
-  user_id: string;
-  session_id: string;
+  id: string;
   title: string;
   created_at: string;
   updated_at: string;
-  message_count: number;
-  preview?: string;
+  message_count?: number;
+  last_message?: string;
+}
+
+interface ApiError {
+  error: string;
+  details?: string;
+  status?: number;
 }
 
 interface CustomAuthResponse {
@@ -146,79 +150,6 @@ const API = {
   // Chat services
   chat: {
     /**
-     * Create a new chat session
-     */
-    createSession: async (
-      token: string,
-      sessionId: string,
-      title = 'New Chat'
-    ): Promise<{
-      session_id: string;
-      created_at: string;
-      _id: string;
-    }> => {
-      try {
-        console.log(`Creating new chat session with ID: ${sessionId}`);
-        console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
-
-        // Call the backend API to create a session
-        const response = await fetch('/api/chat/sessions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            session_id: sessionId,
-            title,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create chat session');
-        }
-
-        const sessionData = await response.json();
-        console.log('Session created successfully:', sessionData);
-        return sessionData;
-      } catch (error: unknown) {
-        console.error('Failed to create chat session:', error);
-        throw error;
-      }
-    },
-
-    /**
-     * Get all chat sessions for the current user
-     */
-    getSessions: async (token: string): Promise<ChatSession[]> => {
-      try {
-        console.log('Fetching chat sessions');
-        console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
-
-        // Call the backend API to get sessions
-        const response = await fetch('/api/chat/sessions', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch chat sessions');
-        }
-
-        const sessions = await response.json();
-        console.log('Received sessions:', sessions);
-        return sessions;
-      } catch (error: unknown) {
-        console.error('Failed to fetch chat sessions:', error);
-        throw error;
-      }
-    },
-
-    /**
      * Send a message to the AI
      */
     sendMessage: async (
@@ -246,6 +177,9 @@ const API = {
         // Include session ID if provided
         if (sessionId) {
           requestBody.session_id = sessionId;
+          console.log('Including session_id in request:', sessionId);
+        } else {
+          console.warn('No session_id provided for chat request');
         }
 
         // Make an actual API call to our backend
@@ -258,12 +192,23 @@ const API = {
           body: JSON.stringify(requestBody),
         });
 
+        // Log the raw response for debugging
+        console.log('API Response status:', response.status);
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to send message');
+          const errorText = await response.text();
+          console.error('API error response:', errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.error || 'Failed to send message');
+          } catch (_) {
+            // If JSON parsing fails, just use the raw text
+            throw new Error(`Failed to send message: ${errorText}`);
+          }
         }
 
         const data = await response.json();
+        console.log('Parsed API response:', data);
 
         // Return the response from the server
         return {
@@ -279,25 +224,46 @@ const API = {
     /**
      * Get chat history
      */
-    getHistory: async (token: string): Promise<ChatMessage[]> => {
+    getHistory: async (
+      token: string,
+      sessionId?: string
+    ): Promise<ChatMessage[]> => {
       try {
         console.log('Fetching chat history');
         console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
 
+        // Build the URL with optional sessionId parameter
+        let url = '/api/chat/history';
+        if (sessionId) {
+          url = `/api/chat/history/${sessionId}`;
+          console.log(`Fetching history for specific session: ${sessionId}`);
+        }
+
         // Make a real API call to the backend
-        const response = await fetch('/api/chat/history', {
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
+        // Log the raw response for debugging
+        console.log('History API Response status:', response.status);
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch chat history');
+          const errorText = await response.text();
+          console.error('API error response:', errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.error || 'Failed to fetch chat history');
+          } catch (_) {
+            // If JSON parsing fails, just use the raw text
+            throw new Error(`Failed to fetch chat history: ${errorText}`);
+          }
         }
 
         const chatHistory = await response.json();
+        console.log(`Received ${chatHistory.length} messages from history`);
         return chatHistory;
       } catch (error: unknown) {
         console.error('Failed to fetch chat history:', error);
@@ -306,18 +272,13 @@ const API = {
     },
 
     /**
-     * Get history for a specific session
+     * Get all chat sessions for the user
      */
-    getSessionHistory: async (
-      token: string,
-      sessionId: string
-    ): Promise<ChatMessage[]> => {
+    getSessions: async (token: string): Promise<any[]> => {
       try {
-        console.log(`Fetching history for session: ${sessionId}`);
-        console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+        console.log('Fetching chat sessions');
 
-        // Make a real API call to the backend
-        const response = await fetch(`/api/chat/history/${sessionId}`, {
+        const response = await fetch('/api/chat/sessions', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -326,16 +287,44 @@ const API = {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch session history');
+          throw new Error(errorData.error || 'Failed to fetch chat sessions');
         }
 
-        const chatHistory = await response.json();
-        return chatHistory;
+        const sessions = await response.json();
+        console.log(`Received ${sessions.length} chat sessions`);
+        return sessions;
       } catch (error: unknown) {
-        console.error(
-          `Failed to fetch history for session ${sessionId}:`,
-          error
-        );
+        console.error('Failed to fetch chat sessions:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Create a new chat session
+     */
+    createSession: async (token: string, title: string): Promise<any> => {
+      try {
+        console.log(`Creating new chat session with title: "${title}"`);
+
+        const response = await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create chat session');
+        }
+
+        const session = await response.json();
+        console.log('Created new session:', session);
+        return session;
+      } catch (error: unknown) {
+        console.error('Failed to create chat session:', error);
         throw error;
       }
     },

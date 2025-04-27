@@ -19,17 +19,6 @@ interface ChatMessage {
   timestamp: string;
 }
 
-interface ChatSession {
-  _id: string;
-  user_id: string;
-  session_id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  preview?: string;
-}
-
 interface CustomAuthResponse {
   access_token?: string;
   user?: UserProfile | null; // Allow for null
@@ -191,7 +180,7 @@ const API = {
     /**
      * Get all chat sessions for the current user
      */
-    getSessions: async (token: string): Promise<ChatSession[]> => {
+    getSessions: async (token: string): Promise<any[]> => {
       try {
         console.log('Fetching chat sessions');
         console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);

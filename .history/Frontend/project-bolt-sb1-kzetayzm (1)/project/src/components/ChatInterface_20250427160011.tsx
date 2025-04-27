@@ -25,13 +25,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(messages.length === 0);
-  const [isError, setIsError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
   // Store the session ID (for conversation continuity)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(
     sessionId
   );
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, getToken } = useAuth();
@@ -40,8 +39,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const supportQuestions = [
     "I'm feeling overwhelmed, what should I do?",
     'Can you help me with breathing exercises?',
-    'How can I manage anxiety at work?',
-    'I need some tips for better sleep',
+    'How can I manage my anxiety at work?',
+    'I need help improving my sleep quality',
   ];
 
   // Scroll to bottom whenever messages change
@@ -90,17 +89,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         throw new Error('No authentication token available');
       }
 
-      // Call API to send message and get response, including session ID
+      // Log to aid debugging
       console.log('Sending message:', text.trim());
       console.log('Using session ID:', currentSessionId);
 
+      // Call API to send message and get response, including session ID
       const response = await API.chat.sendMessage(
         token,
         text.trim(),
         'General',
         currentSessionId
       );
-
       console.log('Received response:', response);
 
       // Add bot response to messages
@@ -150,8 +149,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setCurrentSessionId(newSessionId);
     setMessages([]);
     setShowWelcome(true);
-    setIsError(false);
-    setErrorMessage('');
     console.log('Started new session with ID:', newSessionId);
   };
 
@@ -292,9 +289,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {currentSessionId
               ? 'Conversation memory active'
               : 'Starting new conversation'}
-            {isError && (
-              <span className="text-red-500 ml-2">{errorMessage}</span>
-            )}
           </div>
           <button
             type="button"

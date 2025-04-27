@@ -19,17 +19,6 @@ interface ChatMessage {
   timestamp: string;
 }
 
-interface ChatSession {
-  _id: string;
-  user_id: string;
-  session_id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  preview?: string;
-}
-
 interface CustomAuthResponse {
   access_token?: string;
   user?: UserProfile | null; // Allow for null
@@ -188,35 +177,52 @@ const API = {
       }
     },
 
-    /**
-     * Get all chat sessions for the current user
-     */
-    getSessions: async (token: string): Promise<ChatSession[]> => {
-      try {
-        console.log('Fetching chat sessions');
-        console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+ // Add these interface definitions to your types.ts file or directly in api.ts
 
-        // Call the backend API to get sessions
-        const response = await fetch('/api/chat/sessions', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+// Interface for chat sessions
+interface ChatSession {
+  _id: string;
+  user_id: string;
+  session_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  preview?: string;
+}
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch chat sessions');
+// Update the chat services section in your API object
+// Replace the getSessions method with this properly typed version:
+
+/**
+ * Get all chat sessions for the current user
+ */
+  getSessions: async (token: string): Promise<ChatSession[]> => {
+    try {
+      console.log('Fetching chat sessions');
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Call the backend API to get sessions
+      const response = await fetch('/api/chat/sessions', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
         }
+      });
 
-        const sessions = await response.json();
-        console.log('Received sessions:', sessions);
-        return sessions;
-      } catch (error: unknown) {
-        console.error('Failed to fetch chat sessions:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch chat sessions');
       }
-    },
+
+      const sessions = await response.json();
+      console.log('Received sessions:', sessions);
+      return sessions;
+    } catch (error: unknown) {
+      console.error('Failed to fetch chat sessions:', error);
+      throw error;
+      }
+  },
 
     /**
      * Send a message to the AI

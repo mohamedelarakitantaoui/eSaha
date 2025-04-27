@@ -9,7 +9,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatPage from './pages/ChatPage';
-import ChatSessionsPage from './components/ChatSessionsPage';
 import { DashboardLayout } from './components/DashboardLayout';
 
 import JournalPage from './pages/JournalPage';
@@ -59,18 +58,16 @@ const App: React.FC = () => {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
           {/* Dashboard Routes */}
-          <Route path="/chat" element={<ChatSessionsPage />} />{' '}
-          {/* Show sessions list */}
-          <Route path="/chat/new" element={<ChatPage />} />{' '}
-          {/* Create new session */}
-          <Route path="/chat/:sessionId" element={<ChatPage />} />{' '}
-          {/* Open existing session */}
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/new" element={<ChatPage />} />
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/mood" element={<MoodTrackerPage />} />
           <Route path="/tools" element={<CopingToolsPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+
           {/* Redirect root to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>

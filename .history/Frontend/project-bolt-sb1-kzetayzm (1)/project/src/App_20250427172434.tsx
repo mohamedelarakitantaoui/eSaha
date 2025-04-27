@@ -9,7 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatPage from './pages/ChatPage';
-import ChatSessionsPage from './components/ChatSessionsPage';
+import ChatSessionsPage from './pages/ChatSessionsPage'; // Import the new component
 import { DashboardLayout } from './components/DashboardLayout';
 
 import JournalPage from './pages/JournalPage';
