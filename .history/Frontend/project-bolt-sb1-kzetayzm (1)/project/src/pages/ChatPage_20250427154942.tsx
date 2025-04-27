@@ -1,0 +1,122 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { DashboardLayout } from '../components/DashboardLayout';
+import { ChatInterface } from '../components';
+import useAuth from '../contexts/useAuth';
+import API from '../services/api';
+import { ChatMessage } from '../types'; // Make sure to import ChatMessage from types
+
+interface Message {
+  id: string;
+  sender: 'user' | 'bot';
+  text: string;
+  timestamp: Date;
+}
+
+const ChatPage: React.FC = () => {
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionId, setSessionId] = useState<string | undefined>();
+  const { user, getToken } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isNewSession = location.pathname === '/chat/new';
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // If it's a new session, clear messages and generate a new session ID
+    if (isNewSession) {
+      setInitialMessages([]);
+      setSessionId(
+        `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchChatHistory = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.error('No authentication token available');
+          setIsLoading(false);
+          return;
+        }
+
+        // Use your API service to fetch chat history
+        const data = await API.chat.getHistory(token);
+
+        // Get the session ID from the first message if available
+        if (data.length > 0 && data[0].session_id) {
+          setSessionId(data[0].session_id);
+        }
+
+        // Transform the data to match our Message interface
+        const formattedMessages = data.flatMap((chat: ChatMessage) => {
+          const messages: Message[] = [];
+
+          // Make sure timestamp is properly handled
+          const timestamp =
+            typeof chat.timestamp === 'string'
+              ? new Date(chat.timestamp)
+              : new Date();
+
+          // Add user message
+          messages.push({
+            id: `${chat._id}-user`,
+            sender: 'user',
+            text: chat.message,
+            timestamp: timestamp,
+          });
+
+          // Add bot response if it exists
+          if (chat.response) {
+            messages.push({
+              id: `${chat._id}-bot`,
+              sender: 'bot',
+              text: chat.response,
+              timestamp: timestamp,
+            });
+          }
+
+          return messages;
+        });
+
+        setInitialMessages(formattedMessages);
+      } catch (error) {
+        console.error('Failed to fetch chat history:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChatHistory();
+  }, [user, navigate, getToken, isNewSession, location.pathname]);
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="h-full">
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <ChatInterface
+            initialMessages={initialMessages}
+            sessionId={sessionId}
+          />
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default ChatPage;

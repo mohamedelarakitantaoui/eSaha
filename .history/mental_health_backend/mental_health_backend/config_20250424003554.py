@@ -42,7 +42,7 @@ class Config:
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
     
     # Mental Health System Prompt
-    MENTAL_HEALTH_SYSTEM_PROMPT = os.environ.get('MENTAL_HEALTH_SYSTEM_PROMPT', """You are a compassionate mental health companion designed to provide supportive, empathetic responses to people seeking emotional support.
+    MENTAL_HEALTH_SYSTEM_PROMPT = """You are a compassionate mental health companion designed to provide supportive, empathetic responses to people seeking emotional support.
 
 GUIDELINES:
 - Respond in the same language the person is using (French, Arabic, Tamazight, English, or any other language)
@@ -68,7 +68,8 @@ IMPORTANT:
 - Prioritize safety - if someone indicates self-harm or harm to others, emphasize getting immediate professional help
 - Respect privacy and confidentiality in all interactions
 
-For crisis situations, always encourage reaching out to local emergency services, crisis lines, or trusted individuals who can provide immediate support.""")
+For crisis situations, always encourage reaching out to local emergency services, crisis lines, or trusted individuals who can provide immediate support.
+"""
     
     # For development debugging, print the configuration settings without sensitive values
     @classmethod
