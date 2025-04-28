@@ -1,0 +1,41 @@
+import React from 'react';
+
+interface LogoProps {
+  width?: number;
+  height?: number;
+  className?: string;
+}
+
+const ESahaLogo: React.FC<LogoProps> = ({
+  width = 40,
+  height = 40,
+  className = '',
+}) => {
+  return (
+    <svg
+      viewBox="0 0 200 200"
+      width={width}
+      height={height}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="100" cy="100" r="95" fill="#f5e6e8" />
+      <path
+        d="M160,80 C165,60 155,30 120,30 C85,30 75,60 80,80 C85,100 95,110 100,120 C105,110 115,100 120,80 C125,60 115,30 80,30 C45,30 35,60 40,80 C45,100 55,110 60,120 C65,130 70,140 80,148 C90,155 98,158 100,160 C102,158 110,155 120,148 C130,140 135,130 140,120 C145,110 155,100 160,80 Z"
+        fill="none"
+        stroke="#333"
+        strokeWidth="7"
+      />
+      <path
+        d="M80,65 L130,65 L130,85 L80,85 L80,100 L120,100 L120,120 L80,120 L80,135 L130,135"
+        fill="none"
+        stroke="#2244DD"
+        strokeWidth="15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
+export default ESahaLogo;

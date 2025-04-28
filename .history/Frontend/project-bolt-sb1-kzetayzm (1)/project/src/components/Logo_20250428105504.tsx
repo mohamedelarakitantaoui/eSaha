@@ -4,7 +4,7 @@ export const Logo: React.FC = () => {
   return (
     <div className="flex items-center">
       {/* Reduce the size of the logo container */}
-      <div className="w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-md">
+      <div className="w-12 h-12">
         {' '}
         {/* Adjust these values to make it smaller */}
         <img
