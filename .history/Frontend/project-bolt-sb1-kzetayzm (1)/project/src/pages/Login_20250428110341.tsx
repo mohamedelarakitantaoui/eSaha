@@ -5,7 +5,6 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { supabase } from '../lib/supabase';
 import useAuth from '../contexts/useAuth';
-import { clearAuthState } from '../utils/AuthUtils';
 
 interface LocationState {
   from?: {
@@ -18,7 +17,6 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isClearing, setIsClearing] = useState(true); // Start with clearing state
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -28,28 +26,26 @@ function Login() {
   const state = location.state as LocationState;
   const from = state?.from?.pathname || '/dashboard';
 
-  // Clear any existing auth state on component mount
+  // Check for message in location state (e.g., from registration)
   useEffect(() => {
-    const initPage = async () => {
-      setIsClearing(true);
+    if (state?.message) {
+      setMessage(state.message);
+    }
 
+    // Clear any existing tokens on login page load
+    const clearExistingAuth = async () => {
+      // Remove token from localStorage
+      localStorage.removeItem('access_token');
+
+      // For development purposes, attempt to sign out to clear session
       try {
-        // Clear any message after 5 seconds
-        if (state?.message) {
-          setMessage(state.message);
-          setTimeout(() => setMessage(''), 5000);
-        }
-
-        // Aggressively clear auth state
-        await clearAuthState();
+        await supabase.auth.signOut();
       } catch (err) {
         console.error('Error clearing auth state:', err);
-      } finally {
-        setIsClearing(false);
       }
     };
 
-    initPage();
+    clearExistingAuth();
   }, [state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,59 +97,52 @@ function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {isClearing ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mr-3"></div>
-              <p className="text-gray-500">Preparing login...</p>
-            </div>
-          ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-50 p-4 rounded-md text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
-
-              {message && (
-                <div className="bg-green-50 p-4 rounded-md text-green-700 text-sm">
-                  {message}
-                </div>
-              )}
-
-              <Input
-                label="Email address"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              <Input
-                label="Password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <Link
-                    to="/forgot-password"
-                    className="font-medium text-indigo-600 hover:text-indigo-500"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 p-4 rounded-md text-red-700 text-sm">
+                {error}
               </div>
+            )}
 
-              <Button type="submit" className="w-full" isLoading={isLoading}>
-                Sign in
-              </Button>
-            </form>
-          )}
+            {message && (
+              <div className="bg-green-50 p-4 rounded-md text-green-700 text-sm">
+                {message}
+              </div>
+            )}
+
+            <Input
+              label="Email address"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <Input
+              label="Password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" isLoading={isLoading}>
+              Sign in
+            </Button>
+          </form>
 
           <div className="mt-6">
             <div className="relative">

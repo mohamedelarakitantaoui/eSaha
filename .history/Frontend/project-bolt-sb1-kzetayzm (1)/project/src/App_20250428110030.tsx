@@ -14,7 +14,6 @@ import Register from './pages/Register';
 import ChatPage from './pages/ChatPage';
 import ChatSessionsPage from './components/ChatSessionsPage';
 import { DashboardLayout } from './components/DashboardLayout';
-import ForceLogout from './components/ForceLogout';
 
 import JournalPage from './pages/JournalPage';
 import MoodTrackerPage from './components/MoodTrackerPage';
@@ -23,9 +22,6 @@ import SettingsPage from './pages/SettingsPage';
 import MainDashboard from './components/MainDashboard';
 import EmergencyContacts from './components/EmergencyContacts';
 import SchedulingCalendar from './components/SchedulingCalendar';
-
-// Determine if we're in development mode
-const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Placeholder components for routes not yet implemented
 const CopingToolsPage = () => (
@@ -131,9 +127,6 @@ const RootRedirect = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      {/* Add ForceLogout component in development mode */}
-      {isDevelopment && <ForceLogout />}
-
       <Router>
         <Routes>
           {/* Auth Routes - prevent access if already logged in */}

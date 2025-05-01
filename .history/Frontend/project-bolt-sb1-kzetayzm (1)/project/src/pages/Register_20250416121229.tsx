@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { supabase } from '../lib/supabase';
-import useAuth from '../contexts/useAuth';
 
 function Register() {
   const [fullName, setFullName] = useState('');
@@ -14,24 +13,6 @@ function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { signUp } = useAuth();
-
-  // Clear any existing tokens on register page load
-  useEffect(() => {
-    const clearExistingAuth = async () => {
-      // Remove token from localStorage
-      localStorage.removeItem('access_token');
-
-      // For development purposes, attempt to sign out to clear session
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.error('Error clearing auth state:', err);
-      }
-    };
-
-    clearExistingAuth();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +27,16 @@ function Register() {
     }
 
     try {
-      // Sign up using auth context
-      const { error } = await signUp(email, password);
+      // Sign up with Supabase
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
 
       if (error) throw error;
 

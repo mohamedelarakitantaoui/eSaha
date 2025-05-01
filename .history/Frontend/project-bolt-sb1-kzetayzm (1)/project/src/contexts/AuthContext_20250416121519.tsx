@@ -41,35 +41,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     // Get session on load
     const getInitialSession = async () => {
-      setLoading(true);
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error('Error getting session:', error);
-          // Clear any potentially invalid auth data
-          await supabase.auth.signOut();
-          localStorage.removeItem('access_token');
-        }
-
-        // Set session and user if there's a session
-        if (session) {
-          console.log('Found existing session');
-          setSession(session);
-          setUser(session.user);
-        } else {
-          console.log('No session found');
-          setSession(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Unexpected error checking auth:', error);
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error('Error getting session:', error);
       }
+
+      // Set session and user if there's a session
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+      }
+
+      setLoading(false);
     };
 
     getInitialSession();
@@ -93,7 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -101,15 +87,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error };
     } catch (error) {
       return { error: error as AuthError };
-    } finally {
-      setLoading(false);
     }
   };
 
   // Sign up with email and password
   const signUp = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -117,27 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error };
     } catch (error) {
       return { error: error as AuthError };
-    } finally {
-      setLoading(false);
     }
   };
 
   // Sign out
   const signOut = async () => {
-    setLoading(true);
-    try {
-      // Clear any auth tokens
-      localStorage.removeItem('access_token');
-      // Sign out of Supabase
-      await supabase.auth.signOut();
-      // Clear auth state
-      setUser(null);
-      setSession(null);
-    } catch (error) {
-      console.error('Error during sign out:', error);
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
   };
 
   // Get token for API requests

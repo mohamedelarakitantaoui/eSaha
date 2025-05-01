@@ -1,70 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { supabase } from '../lib/supabase';
-import useAuth from '../contexts/useAuth';
 
-function Register() {
-  const [fullName, setFullName] = useState('');
+function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { signUp } = useAuth();
-
-  // Clear any existing tokens on register page load
-  useEffect(() => {
-    const clearExistingAuth = async () => {
-      // Remove token from localStorage
-      localStorage.removeItem('access_token');
-
-      // For development purposes, attempt to sign out to clear session
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.error('Error clearing auth state:', err);
-      }
-    };
-
-    clearExistingAuth();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError("Passwords don't match");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Sign up using auth context
-      const { error } = await signUp(email, password);
+      // Sign in with Supabase
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) throw error;
 
-      // Redirect to login after successful registration
-      navigate('/login', {
-        state: {
-          message:
-            'Registration successful! Please check your email to confirm your account.',
-        },
-      });
+      // After successful authentication, get the session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (token) {
+        localStorage.setItem('access_token', token);
+        // Navigate to the chat page after successful login
+        navigate('/chat');
+      } else {
+        throw new Error('No session token found');
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
-        console.error('Error during registration:', error.message);
+        console.error('Error during login:', error.message);
       } else {
         setError('An unexpected error occurred');
-        console.error('Error during registration: An unknown error occurred');
+        console.error('Error during login: An unknown error occurred');
       }
     } finally {
       setIsLoading(false);
@@ -78,7 +57,7 @@ function Register() {
           <Logo />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
+          Sign in to your account
         </h2>
       </div>
 
@@ -92,43 +71,36 @@ function Register() {
             )}
 
             <Input
-              label="Full Name"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              autoComplete="name"
-            />
-
-            <Input
               label="Email address"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
 
             <Input
               label="Password"
               type="password"
+              required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
             />
 
-            <Input
-              label="Confirm Password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-            />
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+            </div>
 
             <Button type="submit" className="w-full" isLoading={isLoading}>
-              Create account
+              Sign in
             </Button>
           </form>
 
@@ -138,18 +110,16 @@ function Register() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Already have an account?
-                </span>
+                <span className="px-2 bg-white text-gray-500"></span>
               </div>
             </div>
 
             <div className="mt-6">
               <Link
-                to="/login"
+                to="/register"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
               >
-                Sign in instead
+                Create an account
               </Link>
             </div>
           </div>
@@ -159,4 +129,4 @@ function Register() {
   );
 }
 
-export default Register;
+export default Login;
