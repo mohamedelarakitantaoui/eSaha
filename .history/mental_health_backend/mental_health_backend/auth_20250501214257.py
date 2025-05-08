@@ -387,24 +387,25 @@ def process_chat():
                     print(f"DEBUG: Direct client MongoDB error: {str(client_err)}")
                     # Continue anyway so we return the response to the user
         
-            try:
+        # Update the mood table for tracking
+        try:
             # Store mood entry in separate collection for tracking
-                mood_entry = {
+            mood_entry = {
                 "user_id": str(user_id),
                 "date": datetime.utcnow().strftime('%Y-%m-%d'),
                 "mood": sentiment_result["mood"],
                 "mood_score": sentiment_result["score"],
-                "factors": sentiment_result.get("factors", []),  # Include detected factors if available
+                "factors": [],
                 "source": "chat_message",
                 "message_id": str(chat_document["_id"]) if "_id" in chat_document else None,
                 "session_id": session_id,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
-        }
-                mongo.db.mood_entries.insert_one(mood_entry)
-                print(f"DEBUG: Stored mood entry: {mood_entry['mood']}")
-            except Exception as mood_err:
-                print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
+            }
+            mongo.db.mood_entries.insert_one(mood_entry)
+            print(f"DEBUG: Stored mood entry: {mood_entry['mood']}")
+        except Exception as mood_err:
+            print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
             # Continue anyway, non-critical
         
         # Only store in Supabase if using Supabase auth

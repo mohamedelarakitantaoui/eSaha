@@ -1,30 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Clock, Calendar, MessageSquare, Info } from 'lucide-react';
-import API, { Appointment, ChatSession } from '../services/api'; // Import types directly from API
+import {
+  ChevronLeft,
+  Star,
+  Clock,
+  Calendar,
+  MessageSquare,
+  Info,
+} from 'lucide-react';
+import API from '../api'; // Import API service
+import { Appointment, ChatSession } from '../types';
 import useAuth from '../contexts/useAuth';
 
-// Define interface for specialist data
-interface Specialist {
-  id: string;
-  name: string;
-  title: string;
-  specialties: string[];
-  description: string;
-  availability: string;
-  nextAvailable: string;
-  rating: number;
-  reviews: number;
-  price: string;
-  imageUrl: string;
-  location?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-}
-
 // Specialists data based on screenshot
-const specialists: Specialist[] = [
+const specialists = [
   {
     id: '1',
     name: 'Dr. Sarah Johnson',
@@ -75,7 +64,7 @@ const specialists: Specialist[] = [
 
 const MainDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { accessToken } = useAuth(); // Remove unused 'user' variable
+  const { user, accessToken } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [loading, setLoading] = useState({

@@ -17,15 +17,40 @@ import { DashboardLayout } from './components/DashboardLayout';
 import ForceLogout from './components/ForceLogout';
 
 import JournalPage from './pages/JournalPage';
+
 import ResourcesPage from './pages/ResourcesPage';
 import SettingsPage from './pages/SettingsPage';
 import MainDashboard from './components/MainDashboard';
 import EmergencyContacts from './components/EmergencyContacts';
 import SchedulingCalendar from './components/SchedulingCalendar';
-import SpecialistsPage from './pages/SpecialistsPage';
 
 // Determine if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Placeholder components for routes not yet implemented
+const CopingToolsPage = () => (
+  <DashboardLayout>
+    <div className="h-full flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Coping Tools</h2>
+        <p className="text-gray-600">This feature is coming soon!</p>
+      </div>
+    </div>
+  </DashboardLayout>
+);
+
+const HelpPage = () => (
+  <DashboardLayout>
+    <div className="h-full flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          Help & Support
+        </h2>
+        <p className="text-gray-600">This feature is coming soon!</p>
+      </div>
+    </div>
+  </DashboardLayout>
+);
 
 // Authentication check wrapper component
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
@@ -132,16 +157,6 @@ const App: React.FC = () => {
             }
           />
 
-          {/* Specialists Routes */}
-          <Route
-            path="/specialists"
-            element={
-              <RequireAuth>
-                <SpecialistsPage />
-              </RequireAuth>
-            }
-          />
-
           {/* Chat Routes */}
           <Route
             path="/chat"
@@ -177,7 +192,6 @@ const App: React.FC = () => {
               </RequireAuth>
             }
           />
-
           {/* Appointment Routes */}
           <Route
             path="/appointments"
@@ -206,7 +220,7 @@ const App: React.FC = () => {
             }
           />
 
-          {/* Resources Routes - Kept for backward compatibility */}
+          {/* Resources Routes */}
           <Route
             path="/resources"
             element={
@@ -222,6 +236,24 @@ const App: React.FC = () => {
             element={
               <RequireAuth>
                 <SettingsPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Other Routes */}
+          <Route
+            path="/tools"
+            element={
+              <RequireAuth>
+                <CopingToolsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <RequireAuth>
+                <HelpPage />
               </RequireAuth>
             }
           />

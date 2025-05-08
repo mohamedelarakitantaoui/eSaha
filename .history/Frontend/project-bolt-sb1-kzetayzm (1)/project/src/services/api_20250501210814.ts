@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import supabase from '../lib/supabase';
 
 // Type Definitions
 export interface UserProfile {
@@ -1378,6 +1378,181 @@ const API = {
         throw error;
       }
     },
+
+    // Add these new methods to your API.ts file in the services directory
+
+// Enhanced API methods in the mood namespace
+const moodApiEnhancements = {
+  /**
+   * Get mood entries linked to chat messages
+   */
+  getChatBasedMoodEntries: async (token: string, sessionId?: string): Promise<MoodEntry[]> => {
+    try {
+      console.log(`Getting chat-based mood entries ${sessionId ? 'for session: ' + sessionId : ''}`);
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Construct the URL with optional sessionId filter
+      const url = sessionId 
+        ? `/api/mood/entries/chat?session_id=${sessionId}`
+        : '/api/mood/entries/chat';
+
+      // Call backend API
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to fetch chat-based mood entries');
+      }
+
+      const entries = (await response.json()) as MoodEntry[];
+      return entries;
+    } catch (error: unknown) {
+      console.error('Failed to fetch chat-based mood entries:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get mood insights for a specific chat session
+   */
+  getChatSessionMoodInsights: async (token: string, sessionId: string): Promise<MoodInsights> => {
+    try {
+      console.log(`Getting mood insights for chat session: ${sessionId}`);
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Call backend API
+      const response = await fetch(`/api/mood/insights/chat/${sessionId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to fetch chat session mood insights');
+      }
+
+      const insights = (await response.json()) as MoodInsights;
+      return insights;
+    } catch (error: unknown) {
+      console.error('Failed to fetch chat session mood insights:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get emotional triggers extracted from chat conversations
+   */
+  getEmotionalTriggers: async (token: string, timeRange: 'week' | 'month' | 'year' = 'month'): Promise<Array<{ trigger: string; impact: number; frequency: number; }>> => {
+    try {
+      console.log(`Getting emotional triggers for time range: ${timeRange}`);
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Call backend API
+      const response = await fetch(`/api/mood/triggers?timeRange=${timeRange}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to fetch emotional triggers');
+      }
+
+      const triggers = (await response.json()) as Array<{ trigger: string; impact: number; frequency: number; }>;
+      return triggers;
+    } catch (error: unknown) {
+      console.error('Failed to fetch emotional triggers:', error);
+      throw error;
+    }
+  }
+};
+
+// Enhanced API methods in the chat namespace
+const chatApiEnhancements = {
+  /**
+   * Get chat sessions with associated mood data
+   */
+  getSessionsWithMoodData: async (token: string): Promise<Array<ChatSession & { averageMoodScore?: number; dominantMood?: string; }>> => {
+    try {
+      console.log('Fetching chat sessions with mood data');
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Call backend API
+      const response = await fetch('/api/chat/sessions/with-mood', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to fetch chat sessions with mood data');
+      }
+
+      const sessions = (await response.json()) as Array<ChatSession & { averageMoodScore?: number; dominantMood?: string; }>;
+      return sessions;
+    } catch (error: unknown) {
+      console.error('Failed to fetch chat sessions with mood data:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get messages with associated mood data for a specific session
+   */
+  getSessionMessagesWithMood: async (token: string, sessionId: string): Promise<Array<ChatMessage & { sentiment?: { mood: string; score: number; } }>> => {
+    try {
+      console.log(`Getting messages with mood data for session: ${sessionId}`);
+      console.log(`Using auth token (partial): ${token.substring(0, 10)}...`);
+
+      // Call backend API
+      const response = await fetch(`/api/chat/history/${sessionId}/with-mood`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to fetch messages with mood data');
+      }
+
+      const messages = (await response.json()) as Array<ChatMessage & { sentiment?: { mood: string; score: number; } }>;
+      return messages;
+    } catch (error: unknown) {
+      console.error('Failed to fetch messages with mood data:', error);
+      throw error;
+    }
+  }
+};
+
+// To use these enhanced API methods, add them to your existing API object:
+/*
+// In your API.ts file:
+const API = {
+  auth: { ... },
+  chat: {
+    ...existingChatMethods,
+    ...chatApiEnhancements
+  },
+  mood: {
+    ...existingMoodMethods,
+    ...moodApiEnhancements
+  },
+  // other namespaces...
+};
+*/
 
     /**
      * Export user data

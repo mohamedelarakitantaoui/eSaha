@@ -403,8 +403,8 @@ def process_chat():
         }
                 mongo.db.mood_entries.insert_one(mood_entry)
                 print(f"DEBUG: Stored mood entry: {mood_entry['mood']}")
-            except Exception as mood_err:
-                print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
+                except Exception as mood_err:
+            print(f"DEBUG: Error storing mood entry: {str(mood_err)}")
             # Continue anyway, non-critical
         
         # Only store in Supabase if using Supabase auth
