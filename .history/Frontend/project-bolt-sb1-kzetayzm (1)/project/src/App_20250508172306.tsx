@@ -1,0 +1,240 @@
+import React, { useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import useAuth from './contexts/useAuth';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ChatPage from './pages/ChatPage';
+import ChatSessionsPage from './components/ChatSessionsPage';
+import { DashboardLayout } from './components/DashboardLayout';
+import ForceLogout from './components/ForceLogout';
+
+import JournalPage from './pages/JournalPage';
+import ResourcesPage from './pages/ResourcesPage';
+import SettingsPage from './pages/SettingsPage';
+import MainDashboard from './components/MainDashboard';
+import EmergencyContacts from './components/EmergencyContacts';
+import SchedulingCalendar from './components/SchedulingCalendar';
+import SpecialistsPage from './pages/SpecialistsPage';
+
+// Determine if we're in development mode
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Authentication check wrapper component
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // Redirect to login if not authenticated, but save the location they were trying to go to
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+// Auth routes component to prevent authenticated users from accessing login/register
+const AuthRoutes = ({ children }: { children: JSX.Element }) => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the intended destination from location state, or default to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (!loading && user) {
+      // Redirect to the page they tried to visit or dashboard if already logged in
+      navigate(from, { replace: true });
+    }
+  }, [user, loading, navigate, from]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // If not logged in, show the auth page (login/register)
+  return !user ? children : null;
+};
+
+// Root component to handle initial routing
+const RootRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated, otherwise to dashboard
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />;
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      {/* Add ForceLogout component in development mode */}
+      {isDevelopment && <ForceLogout />}
+
+      <Router>
+        <Routes>
+          {/* Auth Routes - prevent access if already logged in */}
+          <Route
+            path="/login"
+            element={
+              <AuthRoutes>
+                <Login />
+              </AuthRoutes>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <AuthRoutes>
+                <Register />
+              </AuthRoutes>
+            }
+          />
+
+          {/* Protected Dashboard Routes - require authentication */}
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <DashboardLayout>
+                  <div className="p-6">
+                    <MainDashboard />
+                  </div>
+                </DashboardLayout>
+              </RequireAuth>
+            }
+          />
+
+          {/* Specialists Routes */}
+          <Route
+            path="/specialists"
+            element={
+              <RequireAuth>
+                <SpecialistsPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Chat Routes */}
+          <Route
+            path="/chat"
+            element={
+              <RequireAuth>
+                <ChatSessionsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/chat/new"
+            element={
+              <RequireAuth>
+                <ChatPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/chat/:sessionId"
+            element={
+              <RequireAuth>
+                <ChatPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Journal Routes */}
+          <Route
+            path="/journal"
+            element={
+              <RequireAuth>
+                <JournalPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Appointment Routes */}
+          <Route
+            path="/appointments"
+            element={
+              <RequireAuth>
+                <DashboardLayout>
+                  <div className="p-6">
+                    <SchedulingCalendar />
+                  </div>
+                </DashboardLayout>
+              </RequireAuth>
+            }
+          />
+
+          {/* Emergency Contacts Routes */}
+          <Route
+            path="/emergency-contacts"
+            element={
+              <RequireAuth>
+                <DashboardLayout>
+                  <div className="p-6">
+                    <EmergencyContacts />
+                  </div>
+                </DashboardLayout>
+              </RequireAuth>
+            }
+          />
+
+          {/* Resources Routes - Kept for backward compatibility */}
+          <Route
+            path="/resources"
+            element={
+              <RequireAuth>
+                <ResourcesPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Settings Routes */}
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <SettingsPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* Root path redirects to login or dashboard based on auth state */}
+          <Route path="/" element={<RootRedirect />} />
+
+          {/* Catch all other routes and redirect appropriately */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+};
+
+export default App;
